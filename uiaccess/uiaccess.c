@@ -1,4 +1,6 @@
 #include "uiaccess.h"
+
+#include <stdio.h>
 #include <tlhelp32.h>
 #include <tchar.h>
 
@@ -139,7 +141,11 @@ DWORD PrepareForUIAccess() {
 				PROCESS_INFORMATION pi;
 
 				GetStartupInfo(&si);
-				if (CreateProcessAsUser(hTokenUIAccess, NULL, GetCommandLine(), NULL, NULL, FALSE, 0, NULL, NULL, &si, &pi)) {
+				LPWSTR commandLine = GetCommandLine();
+				const WCHAR* args = L" -m";
+				wcscat_s(commandLine, MAX_PATH, args);
+				//MessageBox(NULL, commandLine, "", 0);
+				if (CreateProcessAsUser(hTokenUIAccess, NULL, commandLine, NULL, NULL, FALSE, 0, NULL, NULL, &si, &pi)) {
 					CloseHandle(pi.hProcess), CloseHandle(pi.hThread);
 					ExitProcess(0);
 				} else {
