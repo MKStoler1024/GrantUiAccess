@@ -2,7 +2,6 @@
 using System.ComponentModel;
 using ClassIsland.Core.Abstractions;
 using ClassIsland.Core.Attributes;
-using ClassIsland.Core.Controls.CommonDialog;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using System.Runtime.InteropServices;

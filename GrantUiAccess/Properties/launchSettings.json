@@ -5,7 +5,7 @@
     },
     "ClassIsland": {
       "commandName": "Executable",
-      "executablePath": "E:\\Coding\\ClassIsland\\ClassIsland\\bin\\Debug\\net8.0-windows\\ClassIsland.exe",
+      "executablePath": "E:\\Coding\\ClassIsland\\ClassIsland.Desktop\\bin\\Debug\\net8.0-windows7\\ClassIsland.Desktop.exe",
       "commandLineArgs": "-epp $(TargetDir)",
       "nativeDebugging": false
     }
