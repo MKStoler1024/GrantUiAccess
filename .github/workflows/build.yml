@@ -16,9 +16,11 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      # 安装必要的工具
-      - name: Setup Build Tools
-        uses: microsoft/setup-msbuild@v2
+      # 安装必要的工具（关键修改）
+      - name: Setup Visual Studio Build Tools
+        uses: pwshscripts/setup-vsbuildtools@v1
+        with:
+          components: Microsoft.VisualStudio.Component.VC.Tools.x86.x64
 
       - name: Install .NET 8
         uses: actions/setup-dotnet@v4
@@ -37,10 +39,15 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-nuget-
 
-      # 构建C++项目
+      # 构建C++项目（关键修改）
       - name: Build C++ Project
         run: |
-          msbuild uiaccess/uiaccess.vcxproj `
+          # 确保输出目录存在
+          New-Item -ItemType Directory -Force -Path "../GrantUiAccess/bin/${{ matrix.config }}/net8.0-windows/"
+          
+          # 使用完整MSBuild路径
+          & "${env:ProgramFiles(x86)}\Microsoft Visual Studio\2022\Enterprise\MSBuild\Current\Bin\MSBuild.exe" `
+            uiaccess/uiaccess.vcxproj `
             /p:Configuration=${{ matrix.config }} `
             /p:Platform=${{ matrix.platform }} `
             /p:PlatformToolset=v143 `
@@ -48,17 +55,21 @@ jobs:
             /p:OutDir=../GrantUiAccess/bin/${{ matrix.config }}/net8.0-windows/
         shell: pwsh
 
-      # 构建.NET项目
+      # 构建.NET项目（关键修改）
       - name: Build .NET Project
         run: |
-          dotnet publish D:/a/GrantUiAccess/GrantUiAccess/GrantUiAccess/GrantUiAccess.csproj `
+          # 移除项目中对C++项目的引用（临时修改）
+          (Get-Content GrantUiAccess.csproj) `
+            -replace '<ProjectReference Include=".*uiaccess\.vcxproj" />','' `
+            | Set-Content GrantUiAccess.csproj
+          
+          dotnet publish GrantUiAccess.csproj `
             -c ${{ matrix.config }} `
             -r win-${{ matrix.platform }} `
             --self-contained false `
             -p:Platform=${{ matrix.platform }} `
-            -o D:/a/GrantUiAccess/GrantUiAccess/GrantUiAccess/bin/${{ matrix.config }}/net8.0-windows/
+            -o bin/${{ matrix.config }}/net8.0-windows/
         shell: pwsh
-        working-directory: D:/a/GrantUiAccess/GrantUiAccess/GrantUiAccess
 
       # 上传构建产物
       - name: Upload Artifacts
