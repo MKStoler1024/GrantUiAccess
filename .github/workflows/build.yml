@@ -65,11 +65,11 @@ jobs:
       - name: Build .NET Project
         run: |
           # 临时移除对C++项目的引用
-          (Get-Content GrantUiAccess.csproj) `
+          (Get-Content D:/a/GrantUiAccess/GrantUiAccess/GrantUiAccess/GrantUiAccess.csproj) `
             -replace '<ProjectReference Include=".*uiaccess\.vcxproj" />','' `
             | Set-Content GrantUiAccess.csproj
           
-          dotnet publish GrantUiAccess.csproj `
+          dotnet publish D:/a/GrantUiAccess/GrantUiAccess/GrantUiAccess/GrantUiAccess.csproj `
             -c ${{ matrix.config }} `
             -r win-${{ matrix.platform }} `
             --self-contained false `
