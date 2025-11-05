@@ -9,35 +9,17 @@ jobs:
     name: Build Solution
     strategy:
       matrix:
-        cpp_config: [Release]
-        cpp_platform: [x64]
-        include:
-          - cpp_config: Release
-            dotnet_config: Release
+        config: [Release]
+        platform: [x64]
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      # 安装MSBuild和必要的构建工具
-      - name: Setup MSBuild
+      # 安装必要的工具
+      - name: Setup Build Tools
         uses: microsoft/setup-msbuild@v2
 
-      # 安装Visual C++构建工具(v143工具集)
-      - name: Install Visual C++ Build Tools
-        run: |
-          choco install visualstudio2022-workload-vctools `
-            --package-parameters "--add Microsoft.VisualStudio.Workload.VCTools --includeRecommended --passive --locale en-US" `
-            -y
-        shell: pwsh
-
-      # 设置Windows SDK版本
-      - name: Set Windows SDK Version
-        run: |
-          echo "WindowsTargetPlatformVersion=10.0" >> $env:GITHUB_ENV
-        shell: pwsh
-
-      # 安装.NET 8 SDK
       - name: Install .NET 8
         uses: actions/setup-dotnet@v4
         with:
@@ -47,46 +29,49 @@ jobs:
       - name: Cache NuGet packages
         uses: actions/cache@v4
         with:
-          path: ~/.nuget/packages
-          key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj') }}
+          path: |
+            ~/.nuget/packages
+            GrantUiAccess/obj
+            uiaccess/obj
+          key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj', '**/*.vcxproj') }}
           restore-keys: |
             ${{ runner.os }}-nuget-
 
       # 构建C++项目
       - name: Build C++ Project
         run: |
-          msbuild uiaccess.vcxproj `
-            /p:Configuration=${{ matrix.cpp_config }} `
-            /p:Platform=${{ matrix.cpp_platform }} `
+          msbuild uiaccess/uiaccess.vcxproj `
+            /p:Configuration=${{ matrix.config }} `
+            /p:Platform=${{ matrix.platform }} `
             /p:PlatformToolset=v143 `
             /p:WindowsTargetPlatformVersion=10.0 `
-            /p:OutDir=GrantUiAccess\bin\${{ matrix.cpp_config }}\net8.0-windows\
+            /p:OutDir=../GrantUiAccess/bin/${{ matrix.config }}/net8.0-windows/
         shell: pwsh
 
       # 构建.NET项目
       - name: Build .NET Project
         run: |
-          dotnet publish GrantUiAccess\GrantUiAccess.csproj `
-            -c ${{ matrix.dotnet_config }} `
-            -r win-x64 `
+          dotnet publish GrantUiAccess/GrantUiAccess.csproj `
+            -c ${{ matrix.config }} `
+            -r win-${{ matrix.platform }} `
             --self-contained false `
-            -p:Platform=x64
+            -p:Platform=${{ matrix.platform }} `
+            -o bin/${{ matrix.config }}/net8.0-windows/
         shell: pwsh
+        working-directory: GrantUiAccess
 
       # 上传构建产物
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: build-output-${{ matrix.cpp_config }}-${{ matrix.cpp_platform }}
-          path: |
-            GrantUiAccess/bin/${{ matrix.cpp_config }}/net8.0-windows/
-            GrantUiAccess/bin/${{ matrix.dotnet_config }}/net8.0-windows/win-x64/publish/
+          name: build-output-${{ matrix.config }}-${{ matrix.platform }}
+          path: GrantUiAccess/bin/${{ matrix.config }}/net8.0-windows/
 
       # 如果是标签推送，创建发布
       - name: Create Release
         uses: ncipollo/release-action@v1
         if: ${{ startsWith(github.ref, 'refs/tags/') }}
         with:
-          artifacts: "GrantUiAccess/bin/**/*"
+          artifacts: "GrantUiAccess/bin/${{ matrix.config }}/net8.0-windows/**/*"
           draft: true
           token: ${{ secrets.GITHUB_TOKEN }}
