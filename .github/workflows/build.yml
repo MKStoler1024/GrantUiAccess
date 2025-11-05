@@ -16,11 +16,17 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      # 安装必要的工具（关键修改）
-      - name: Setup Visual Studio Build Tools
-        uses: pwshscripts/setup-vsbuildtools@v1
+      # 安装 Visual Studio 构建工具（官方方式）
+      - name: Setup MSBuild
+        uses: microsoft/setup-msbuild@v2
         with:
-          components: Microsoft.VisualStudio.Component.VC.Tools.x86.x64
+          vs-version: '[17.0,18.0)'  # VS2022
+
+      # 安装 C++ 构建工具
+      - name: Install C++ Tools
+        run: |
+          choco install visualstudio2022-workload-vctools -y --no-progress
+        shell: pwsh
 
       - name: Install .NET 8
         uses: actions/setup-dotnet@v4
@@ -39,14 +45,14 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-nuget-
 
-      # 构建C++项目（关键修改）
+      # 构建C++项目
       - name: Build C++ Project
         run: |
           # 确保输出目录存在
           New-Item -ItemType Directory -Force -Path "../GrantUiAccess/bin/${{ matrix.config }}/net8.0-windows/"
           
           # 使用完整MSBuild路径
-          & "${env:ProgramFiles(x86)}\Microsoft Visual Studio\2022\Enterprise\MSBuild\Current\Bin\MSBuild.exe" `
+          & "${env:ProgramFiles(x86)}\Microsoft Visual Studio\2022\BuildTools\MSBuild\Current\Bin\MSBuild.exe" `
             uiaccess/uiaccess.vcxproj `
             /p:Configuration=${{ matrix.config }} `
             /p:Platform=${{ matrix.platform }} `
@@ -55,10 +61,10 @@ jobs:
             /p:OutDir=../GrantUiAccess/bin/${{ matrix.config }}/net8.0-windows/
         shell: pwsh
 
-      # 构建.NET项目（关键修改）
+      # 构建.NET项目
       - name: Build .NET Project
         run: |
-          # 移除项目中对C++项目的引用（临时修改）
+          # 临时移除对C++项目的引用
           (Get-Content GrantUiAccess.csproj) `
             -replace '<ProjectReference Include=".*uiaccess\.vcxproj" />','' `
             | Set-Content GrantUiAccess.csproj
@@ -77,12 +83,3 @@ jobs:
         with:
           name: build-output-${{ matrix.config }}-${{ matrix.platform }}
           path: GrantUiAccess/bin/${{ matrix.config }}/net8.0-windows/
-
-      # 如果是标签推送，创建发布
-      - name: Create Release
-        uses: ncipollo/release-action@v1
-        if: ${{ startsWith(github.ref, 'refs/tags/') }}
-        with:
-          artifacts: "GrantUiAccess/bin/${{ matrix.config }}/net8.0-windows/**/*"
-          draft: true
-          token: ${{ secrets.GITHUB_TOKEN }}
