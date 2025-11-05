@@ -9,11 +9,9 @@ jobs:
     name: Build Solution
     strategy:
       matrix:
-        cpp_config: [Debug, Release]
-        cpp_platform: [Win32, x64]
+        cpp_config: [Release]
+        cpp_platform: [x64]
         include:
-          - cpp_config: Debug
-            dotnet_config: Debug
           - cpp_config: Release
             dotnet_config: Release
 
@@ -43,7 +41,7 @@ jobs:
       - name: Install .NET 8
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: 8.x'
+          dotnet-version: '8.0.x'
 
       # 缓存NuGet包
       - name: Cache NuGet packages
