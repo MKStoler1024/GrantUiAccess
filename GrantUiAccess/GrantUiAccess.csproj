@@ -14,12 +14,12 @@
 		</PackageReference>
 	</ItemGroup>
 	
-	<ItemGroup>
+	<!-- <ItemGroup>
 	  <ProjectReference Include="..\uiaccess\uiaccess.vcxproj">
 	    <ReferenceOutputAssembly>True</ReferenceOutputAssembly>
 	    <CopyLocalSatelliteAssemblies>True</CopyLocalSatelliteAssemblies>
 	  </ProjectReference>
-	</ItemGroup>
+	</ItemGroup> -->
 
 	<ItemGroup>
 		<None Update="manifest.yml">
