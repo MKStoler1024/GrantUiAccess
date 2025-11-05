@@ -1,21 +1,31 @@
-name: Build
+name: Build Solution
 on:
   push:
   workflow_dispatch:
 
 jobs:
-  build_app:
+  build:
     runs-on: windows-latest
-    name: Build
+    name: Build Solution
+    strategy:
+      matrix:
+        cpp_config: [Debug, Release]
+        cpp_platform: [Win32, x64]
+        include:
+          - cpp_config: Debug
+            dotnet_config: Debug
+          - cpp_config: Release
+            dotnet_config: Release
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      # 1️⃣ 安装 MSBuild（把 msbuild.exe 加入 PATH）
+      # 安装MSBuild和必要的构建工具
       - name: Setup MSBuild
-        uses: microsoft/setup-msbuild@v2   # 参考官方 Action[[4]]
+        uses: microsoft/setup-msbuild@v2
 
-      # 2️⃣ 安装 Visual Studio C++ 工作负载（VCTools）
+      # 安装Visual C++构建工具(v143工具集)
       - name: Install Visual C++ Build Tools
         run: |
           choco install visualstudio2022-workload-vctools `
@@ -23,41 +33,62 @@ jobs:
             -y
         shell: pwsh
 
-      # 3️⃣（可选）显式设置 VCTargetsPath，防止路径不一致
-      - name: Set VCTargetsPath
+      # 设置Windows SDK版本
+      - name: Set Windows SDK Version
         run: |
-          $vsPath = "C:\Program Files (x86)\Microsoft Visual Studio\2022\Enterprise"
-          $targets = Join-Path $vsPath "MSBuild\Current\Bin\Microsoft.Cpp\v4.0\V140"
-          echo "VCTargetsPath=$targets" >> $env:GITHUB_ENV
+          echo "WindowsTargetPlatformVersion=10.0" >> $env:GITHUB_ENV
         shell: pwsh
 
-      - name: Install .NET Core
+      # 安装.NET 8 SDK
+      - name: Install .NET 8
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: 8.x
+          dotnet-version: 8.x'
 
+      # 缓存NuGet包
       - name: Cache NuGet packages
         uses: actions/cache@v4
         with:
-          path: \~/.nuget/packages
+          path: ~/.nuget/packages
           key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj') }}
           restore-keys: |
             ${{ runner.os }}-nuget-
 
-      - name: Build
-        run: pwsh -ep bypass ./tools/publish.ps1
+      # 构建C++项目
+      - name: Build C++ Project
+        run: |
+          msbuild uiaccess.vcxproj `
+            /p:Configuration=${{ matrix.cpp_config }} `
+            /p:Platform=${{ matrix.cpp_platform }} `
+            /p:PlatformToolset=v143 `
+            /p:WindowsTargetPlatformVersion=10.0 `
+            /p:OutDir=GrantUiAccess\bin\${{ matrix.cpp_config }}\net8.0-windows\
+        shell: pwsh
 
-      - name: Upload artifact
+      # 构建.NET项目
+      - name: Build .NET Project
+        run: |
+          dotnet publish GrantUiAccess\GrantUiAccess.csproj `
+            -c ${{ matrix.dotnet_config }} `
+            -r win-x64 `
+            --self-contained false `
+            -p:Platform=x64
+        shell: pwsh
+
+      # 上传构建产物
+      - name: Upload Artifacts
         uses: actions/upload-artifact@v4
         with:
+          name: build-output-${{ matrix.cpp_config }}-${{ matrix.cpp_platform }}
           path: |
-            ./cipx/*.cipx
+            GrantUiAccess/bin/${{ matrix.cpp_config }}/net8.0-windows/
+            GrantUiAccess/bin/${{ matrix.dotnet_config }}/net8.0-windows/win-x64/publish/
 
-      - name: Upload APP to release
+      # 如果是标签推送，创建发布
+      - name: Create Release
         uses: ncipollo/release-action@v1
         if: ${{ startsWith(github.ref, 'refs/tags/') }}
         with:
-          artifacts: "./cipx/*.cipx"
+          artifacts: "GrantUiAccess/bin/**/*"
           draft: true
-          bodyFile: ./cipx/checksums.md
           token: ${{ secrets.GITHUB_TOKEN }}
