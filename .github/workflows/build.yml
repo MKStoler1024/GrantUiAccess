@@ -51,14 +51,14 @@ jobs:
       # 构建.NET项目
       - name: Build .NET Project
         run: |
-          dotnet publish ./GrantUiAccess/GrantUiAccess.csproj `
+          dotnet publish D:/a/GrantUiAccess/GrantUiAccess/GrantUiAccess/GrantUiAccess.csproj `
             -c ${{ matrix.config }} `
             -r win-${{ matrix.platform }} `
             --self-contained false `
             -p:Platform=${{ matrix.platform }} `
-            -o ./bin/${{ matrix.config }}/net8.0-windows/
+            -o D:/a/GrantUiAccess/GrantUiAccess/GrantUiAccess/bin/${{ matrix.config }}/net8.0-windows/
         shell: pwsh
-        working-directory: GrantUiAccess
+        working-directory: D:/a/GrantUiAccess/GrantUiAccess/GrantUiAccess
 
       # 上传构建产物
       - name: Upload Artifacts
