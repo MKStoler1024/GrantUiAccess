@@ -74,7 +74,7 @@ jobs:
             -r win-${{ matrix.platform }} `
             --self-contained false `
             -p:Platform=${{ matrix.platform }} `
-            -o bin/${{ matrix.config }}/net8.0-windows/
+            -o D:/a/GrantUiAccess/GrantUiAccess/GrantUiAccess/bin/${{ matrix.config }}/net8.0-windows/
         shell: pwsh
 
       # 上传构建产物
